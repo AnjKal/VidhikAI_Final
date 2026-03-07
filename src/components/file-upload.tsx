@@ -121,21 +121,21 @@ export default function FileUpload({ onDocumentSelect, activeTab, onTabChange }:
   return (
     <div className="flex h-full flex-col items-center justify-center p-6">
        <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as 'upload' | 'paste' | 'ocr')} className="w-full max-w-lg">
-        <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">
+        <TabsList className="grid w-full grid-cols-1">
+            {/* <TabsTrigger value="upload">
                 <UploadCloud className="mr-2 h-4 w-4"/>
                 Upload File
             </TabsTrigger>
             <TabsTrigger value="paste">
                 <FileText className="mr-2 h-4 w-4"/>
                 Paste Text
-            </TabsTrigger>
+            </TabsTrigger> */}
              <TabsTrigger value="ocr">
                 <Scan className="mr-2 h-4 w-4"/>
                 Scanned/Image
             </TabsTrigger>
         </TabsList>
-        <TabsContent value="upload">
+        {/* <TabsContent value="upload">
             <Card className="border-t-0 rounded-t-none">
                 <CardContent className="p-0">
                      <label htmlFor="file-upload" className="w-full cursor-pointer rounded-b-lg border-2 border-dashed border-border p-12 text-center transition-colors hover:border-primary/50 flex flex-col items-center justify-center h-[288px]">
@@ -165,7 +165,7 @@ export default function FileUpload({ onDocumentSelect, activeTab, onTabChange }:
                     </Button>
                 </CardContent>
             </Card>
-        </TabsContent>
+        </TabsContent> */}
         <TabsContent value="ocr">
             <Card className="border-t-0 rounded-t-none">
                 <CardContent className="p-0">

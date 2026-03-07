@@ -264,7 +264,7 @@ export default function Page() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<AppMode>('chat');
-  const [uploadTab, setUploadTab] = useState<UploadTab>('upload');
+  const [uploadTab, setUploadTab] = useState<UploadTab>('ocr');
   const [isNewSessionDialogOpen, setIsNewSessionDialogOpen] = useState(false);
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
   const [isChatVisible, setIsChatVisible] = useState(false);
