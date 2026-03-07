@@ -1,0 +1,89 @@
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+.nyc_output
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+Thumbs.db
+*.pem
+
+# debug / logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# local env files
+.env.local
+.env
+.env.development
+.env.production
+.env.test
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# AWS / Amplify / Cognito
+amplify/.config/local-*
+amplify/logs
+amplify/mock-data
+amplify/backend/amplify-meta.json
+amplify/backend/.temp
+amplify/#current-cloud-backend
+amplify/cli.json
+aws-exports.js
+awsconfiguration.json
+amplifyconfiguration.json
+amplify-build-config.json
+.secret-*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+.firebaserc
+
+# Google Cloud
+gcloud-service-key.json
+.gcloudignore
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cache / build tools
+.cache/
+.turbo/
+.parcel-cache/
+
+# Deployment / infrastructure config
+*.yaml
+*.yml
+*.sh
+
