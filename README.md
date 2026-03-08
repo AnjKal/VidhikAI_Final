@@ -2,7 +2,7 @@
 
 ## 1. Vision, Social Impact & Feasibility
 
-### The Problem Your Solution Addresses
+### The Problem Our Solution Addresses
 
 In India, millions of people from students renting their first apartment to small business owners signing service agreements enter into legally binding contracts without fully understanding the terms. This lack of comprehension stems from two significant barriers:
 
@@ -11,7 +11,7 @@ In India, millions of people from students renting their first apartment to smal
 
 This information gap puts individuals at a severe disadvantage, exposing them to financial risks, unfair obligations, and potential exploitation. The cost of hiring a lawyer to review routine documents is prohibitive for the vast majority, creating a critical need for accessible, first-line legal support.
 
-### Your Compelling Vision & Positive Impact
+### Our Vision & Positive Impact
 
 **Vidhik AI** is an intelligent legal assistant designed to empower the common person by making legal documents simple, accessible, and understandable.
 
