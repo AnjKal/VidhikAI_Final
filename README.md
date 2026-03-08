@@ -28,8 +28,8 @@ This vision directly aligns with the focus area of **empowering people with acce
 
 The project is highly feasible and built for scale:
 
-*   **Feasibility:** The technical foundation is solid and uses modern, production-ready technologies. By using **Firebase Genkit** to orchestrate calls to Google's powerful **Gemini 2.5 Pro & Gemini 2.5 Flash via Vertex AI**, we can achieve a high degree of accuracy in contextual understanding and analysis right from the start.
-*   **Scalability:** The entire stack is serverless. **Next.js** provides a performant frontend, **Firebase Genkit** runs in a serverless environment, and **Firebase Authentication & Firestore** automatically scale to handle a massive number of users without manual intervention. The final application is deployed globally via **Google Cloud Run**.
+*   **Feasibility:** The technical foundation is solid and uses modern, production-ready technologies. By using **Amazon Bedrock** to orchestrate calls to **Amazon Nova Lite**, we can achieve a high degree of accuracy in contextual understanding and analysis right from the start.
+*   **Scalability:** The stack is built for scale. **Next.js** provides a performant frontend running on **AWS ECS Fargate**, and **Amazon Cognito**, **Amazon S3**, and **DynamoDB** automatically scale to handle a massive number of users without manual intervention. The application is deployed on **AWS ECS Fargate** behind an Application Load Balancer.
 
 ## 2. Opportunity and Unique Value Proposition
 
@@ -63,7 +63,7 @@ The prototype is a fully functional web application that allows users to sign up
     *   **Original Document:** A viewer for the original file.
 *   **Conversational Q&A (RAG Implementation):**
     *   An interactive chat interface is available after the initial analysis.
-    *   This feature uses **Retrieval-Augmented Generation (RAG)**. When a user asks a question, the full text of their document is passed to the AI model as the primary context.
+    *   This feature uses **Retrieval-Augmented Generation (RAG)**. When a user asks a question, the full text of their document is passed to **Amazon Nova Lite via Amazon Bedrock** as the primary context.
     *   This forces the AI to generate answers *exclusively* from the provided document, preventing it from inventing information or using external knowledge. This ensures that the answers are highly relevant and grounded in the user's specific legal text.
 *   **Download Original:** Allows users to download the original document they uploaded.
 
@@ -72,8 +72,8 @@ The prototype is a fully functional web application that allows users to sign up
 *   **Detailed Difference Report:** Generates a report of **New Clauses**, **Changed Terms**, and **Deleted Clauses**, explaining the practical impact of each modification.
 
 ### 3. User & Session Management
-*   **Secure Authentication:** Users can sign up and log in with email and password via Firebase Authentication.
-*   **Session History:** Automatically saves all analysis and comparison sessions to the user's private account. Users can view and reload past sessions from the history panel.
+*   **Secure Authentication:** Users can sign up and log in with email and password via **Amazon Cognito**.
+*   **Session History:** Automatically saves all analysis and comparison sessions to the user's private account in **DynamoDB**. Users can view and reload past sessions from the history panel.
 *   **My Documents:** A gallery of all unique documents a user has ever uploaded, allowing for quick access to start new analysis sessions.
 
 ### 4. Information & FAQ
@@ -84,17 +84,83 @@ The prototype is a fully functional web application that allows users to sign up
 ### Technologies Used
 *   **Frontend:** Next.js (App Router), React, TypeScript
 *   **UI:** Tailwind CSS, ShadCN UI
-*   **AI Backend:** Firebase Genkit
-*   **AI Models:** Google's Gemini 2.5 Pro & Gemini 2.5 Flash via Vertex AI
-*   **Database:** Firestore (for storing user session history)
-*   **Authentication:** Firebase Authentication (Email/Password)
-*   **Deployment:** Google Cloud Run (containerized deployment)
+*   **AI Backend:** Amazon Bedrock (AWS SDK)
+*   **AI Model:** Amazon Nova Lite via Amazon Bedrock
+*   **Document Storage:** Amazon S3
+*   **Database:** Amazon DynamoDB (for storing user session history and metadata)
+*   **Authentication:** Amazon Cognito (Email/Password via AWS Amplify)
+*   **Deployment:** AWS ECS Fargate (containerized, behind an Application Load Balancer)
+*   **Container Registry:** Amazon ECR
+*   **Observability:** Amazon CloudWatch Logs
+
+### Tech Stack Diagram
+
+```mermaid
+flowchart TB
+
+%% USER LAYER
+A[User Browser]
+A --> B[Next.js Frontend<br>React + TypeScript]
+B --> C[Next.js Server Actions API]
+
+%% AUTHENTICATION
+C --> D[AWS Cognito<br>User Authentication<br>JWT Tokens]
+
+%% DOCUMENT PROCESSING
+C --> E[Document Processing Layer]
+
+E --> F1[pdfjs-dist<br>PDF Parser]
+E --> F2[mammoth<br>DOCX Parser]
+E --> F3[Amazon Rekognition<br>OCR for Images]
+
+%% PRIVACY LAYER
+E --> G[PII Detection & Masking Engine]
+
+%% AI ENGINE
+G --> H[Amazon Bedrock]
+H --> I[Amazon Nova Lite Model]
+
+%% AI TASKS
+I --> J1[Document Summary]
+I --> J2[Risk Detection]
+I --> J3[Obligation Extraction]
+I --> J4[Legal Term Glossary]
+I --> J5[Conversational Q&A]
+
+%% STORAGE LAYER
+C --> K[Amazon S3<br>Document Storage]
+C --> L[DynamoDB<br>Metadata + Chat History]
+
+%% DEPLOYMENT INFRASTRUCTURE
+subgraph AWS Cloud
+M[Docker Container]
+N[ECS Fargate]
+O[Application Load Balancer]
+P[CloudWatch Logs]
+Q[Amazon ECR]
+end
+
+O --> N
+N --> M
+Q --> N
+N --> P
+
+%% RESPONSE FLOW
+J1 --> R[Analysis Results]
+J2 --> R
+J3 --> R
+J4 --> R
+J5 --> R
+
+R --> B
+B --> A
+```
 
 ### RAG Implementation Details
 The core of Vidhik AI's intelligence relies on a direct and effective implementation of Retrieval-Augmented Generation (RAG).
 
-1.  **Contextual Grounding**: For every AI task (demystification, comparison, Q&A), the *entire text content* of the user's document(s) is passed directly to the model as part of the prompt. This serves as the "retrieval" source.
-2.  **Genkit's `docs` Retriever**: For the conversational Q&A feature, the `ask` flow wraps the document text in a `Document.fromText()` object. This object is passed to the `ai.generate()` call via the `docs` parameter. This signals to Genkit and the Gemini model to treat this text as the primary source of truth for "retrieval."
+1.  **Contextual Grounding**: For every AI task (demystification, comparison, Q&A), the *entire text content* of the user's document(s) is passed directly to **Amazon Nova Lite via Amazon Bedrock** as part of the prompt. This serves as the "retrieval" source.
+2.  **Document-as-Context**: For the conversational Q&A feature, the `ask` flow passes the full document text alongside the user's question as the primary context window for the model, instructing it to treat the document as the single source of truth.
 3.  **In-Prompt Instructions**: The prompts are engineered with critical instructions for the AI to base its answers *exclusively* on the provided document context, ensuring factual accuracy and preventing hallucinations.
 
 This approach simplifies the architecture while ensuring that every piece of analysis is directly traceable to the source document, providing a reliable and trustworthy user experience.
@@ -102,25 +168,141 @@ This approach simplifies the architecture while ensuring that every piece of ana
 ### Architecture & Process Flow Diagrams
 
 #### High-Level Architecture
+
 ```mermaid
-graph TD
-    subgraph U["User & Browser"]
-        A[User's Browser] -->|1: Login/Signup| B(Firebase Auth);
-        A -->|2: Uploads Document| C(Next.js Frontend);
-    end
+flowchart LR
 
-    subgraph H["`App Hosting Google Cloud Run`"]
-        C -->|3: Invokes Server Action| D[Next.js Server];
-        D -->|4: Calls Genkit Flow: RAG| E[Genkit Backend];
-        E -->|5: Calls Gemini via Vertex AI| F{Gemini AI Models};
-        F -->|6: Returns Analysis| E;
-        E -->|7: Returns Structured Data| D;
-        D -->|8: Saves to Firestore| G[Firestore Database];
-        D -->|9: Sends Data to Client| C;
-        C -->|10: Renders Report & Enables Chat| A;
-    end
+%% ---------------- CLIENT LAYER ----------------
+subgraph Client["Client Layer"]
+A[User Browser]
+B[Next.js 15 UI<br>React + TypeScript + Tailwind]
+A --> B
+end
 
+%% ---------------- AUTH ----------------
+subgraph Auth["Authentication"]
+C[Amazon Cognito<br>User Pool]
+end
 
+B -->|Login / JWT| C
+
+%% ---------------- APPLICATION LAYER ----------------
+subgraph App["Application Layer (AWS ECS Fargate)"]
+D[Next.js Server Actions API]
+
+subgraph AI["AI Workflows"]
+E1[Demystify Document Flow<br>Single Step RAG]
+E2[Compare Documents Flow<br>Multi Document Analysis]
+E3[Chat Flow<br>Conversational RAG]
+end
+
+subgraph Processing
+F1[PDF Parser<br>pdfjs-dist]
+F2[DOCX Parser<br>mammoth]
+F3[Image OCR<br>Amazon Rekognition]
+F4[PII Detection & Masking]
+end
+
+D --> E1
+D --> E2
+D --> E3
+
+E1 --> F1
+E1 --> F2
+E1 --> F3
+E2 --> F1
+E2 --> F2
+E3 --> F1
+
+F1 --> F4
+F2 --> F4
+F3 --> F4
+end
+
+%% ---------------- AI LAYER ----------------
+subgraph AILayer["AI Layer (Amazon Bedrock)"]
+G[Amazon Nova Lite Model]
+end
+
+F4 -->|Sanitized Document Context| G
+
+%% ---------------- AI OUTPUT TASKS ----------------
+subgraph AIAnalysis["AI Analysis"]
+H1[Document Summary]
+H2[Risk Detection]
+H3[Obligation Extraction]
+H4[Legal Term Glossary]
+H5[Conversational Q&A]
+end
+
+G --> H1
+G --> H2
+G --> H3
+G --> H4
+G --> H5
+
+%% ---------------- DATA STORAGE ----------------
+subgraph DataStorage["Data & Storage"]
+I1[Amazon S3<br>Document Storage]
+I2[DynamoDB<br>Metadata + Chat History]
+end
+
+D --> I1
+D --> I2
+
+%% ---------------- INFRASTRUCTURE ----------------
+subgraph Infrastructure["Infrastructure (AWS Cloud)"]
+J1[Docker Containers]
+J2[ECS Fargate]
+J3[Application Load Balancer]
+J4[Amazon ECR]
+J5[CloudWatch Logs]
+end
+
+J3 --> J2
+J2 --> J1
+J4 --> J2
+J2 --> J5
+
+%% ---------------- RESPONSE ----------------
+H1 --> B
+H2 --> B
+H3 --> B
+H4 --> B
+H5 --> B
+
+%% ---------- COLORS ----------
+style A fill:#cfe8ff,stroke:#1f78b4,stroke-width:2px
+style B fill:#cfe8ff,stroke:#1f78b4,stroke-width:2px
+
+style C fill:#d4f7d4,stroke:#2e7d32,stroke-width:2px
+
+style D fill:#fff4cc,stroke:#b8860b,stroke-width:2px
+style E1 fill:#fff4cc,stroke:#b8860b
+style E2 fill:#fff4cc,stroke:#b8860b
+style E3 fill:#fff4cc,stroke:#b8860b
+
+style F1 fill:#fff4cc
+style F2 fill:#fff4cc
+style F3 fill:#fff4cc
+style F4 fill:#fff4cc
+
+style G fill:#e8d5ff,stroke:#6a0dad,stroke-width:2px
+
+style H1 fill:#e8d5ff
+style H2 fill:#e8d5ff
+style H3 fill:#e8d5ff
+style H4 fill:#e8d5ff
+style H5 fill:#e8d5ff
+
+style I1 fill:#ffe5cc,stroke:#d2691e,stroke-width:2px
+style I2 fill:#ffe5cc,stroke:#d2691e,stroke-width:2px
+
+style J1 fill:#f0f0f0
+style J2 fill:#f0f0f0
+style J3 fill:#f0f0f0
+style J4 fill:#f0f0f0
+style J5 fill:#f0f0f0
 ```
 
 #### Process Flow: AI Document Helper
@@ -130,21 +312,21 @@ graph TD
         A["1. User Uploads Document"] --> B{"AI Document Helper"};
     end
     subgraph "Backend Processing (RAG)"
-        B --> C["2. Next.js server calls 'demystify' Genkit Flow"];
-        C --> D["3. Genkit performs RAG by sending full document text to Gemini via Vertex AI"];
-        D --> E["4. Gemini performs OCR, PII Masking, & generates structured analysis"];
-        E --> F["5. Gemini returns structured JSON output"];
-        F --> G["6. Genkit Flow completes, returns data to Next.js"];
+        B --> C["2. Next.js server calls 'demystify' flow"];
+        C --> D["3. RAG: full document text sent to Amazon Nova Lite via Amazon Bedrock"];
+        D --> E["4. Nova Lite performs OCR, PII Masking, & generates structured analysis"];
+        E --> F["5. Nova Lite returns structured JSON output"];
+        F --> G["6. Flow completes, returns data to Next.js"];
     end
     subgraph Session & UI Update
-        G --> H["7. Session is saved to Firestore"];
+        G --> H["7. Session is saved to DynamoDB"];
         G --> I["8. Next.js sends analysis to client"];
         I --> J["9. UI updates with multi-tab report"];
     end
     subgraph "Conversational Q&A (RAG)"
         J --> K["10. User asks a question in chat"];
-        K --> L["11. 'ask' Genkit Flow is called with question and full document text (RAG via `docs` retriever)"];
-        L --> M["12. Gemini uses document as context to generate an answer"];
+        K --> L["11. 'ask' flow is called with question and full document text as context window"];
+        L --> M["12. Nova Lite uses document as context to generate an answer"];
         M --> N["13. Answer is streamed back to UI"];
     end
 ```
@@ -156,14 +338,14 @@ graph TD
         A["1. User uploads Document A & B"] --> B{"Compare Documents"};
     end
     subgraph "Backend Processing (RAG)"
-        B --> C["2. Next.js calls 'compare' Genkit Flow"];
-        C --> D["3. Genkit performs RAG by sending both document texts to Gemini via Vertex AI"];
-        D --> E["4. Gemini analyzes differences and impacts"];
-        E --> F["5. Gemini returns structured JSON report"];
-        F --> G["6. Genkit Flow returns data to Next.js"];
+        B --> C["2. Next.js calls 'compare' flow"];
+        C --> D["3. RAG: both document texts sent to Amazon Nova Lite via Amazon Bedrock"];
+        D --> E["4. Nova Lite analyzes differences and impacts"];
+        E --> F["5. Nova Lite returns structured JSON report"];
+        F --> G["6. Flow returns data to Next.js"];
     end
     subgraph Session & UI Update
-        G --> H["7. New comparison session saved to Firestore"];
+        G --> H["7. New comparison session saved to DynamoDB"];
         G --> I["8. Report is sent to client UI"];
         I --> J["9. UI renders detailed comparison"];
     end
@@ -183,7 +365,7 @@ To run and test the application on your local machine, please follow these steps
 
 1.  **Prerequisites:**
     *   **Node.js:** Ensure you have Node.js (v18 or newer) installed.
-    *   **Google Cloud CLI:** Install the `gcloud` CLI.
+    *   **AWS Account:** You will need an AWS account with access to Cognito, S3, DynamoDB, Bedrock (Nova Lite), and ECS Fargate.
 
 2.  **Clone the Repository:**
     ```bash
@@ -191,37 +373,46 @@ To run and test the application on your local machine, please follow these steps
     cd VidhikAI
     ```
 
-3.  **Authenticate with Google Cloud:**
-    *   Open your terminal and run the following command to log into your Google Account:
+3.  **Configure AWS Credentials:**
+    *   Ensure your AWS credentials are configured. The recommended approach is to use IAM roles (for deployed environments) or set the following environment variables locally:
     ```bash
-    gcloud auth login
+    AWS_ACCESS_KEY_ID="<your-access-key-id>"
+    AWS_SECRET_ACCESS_KEY="<your-secret-access-key>"
+    AWS_REGION="us-east-1"
     ```
-    *   This will open a browser window for you to complete the login process. This step is crucial for authenticating with Vertex AI.
 
 4.  **Create Environment File:**
     *   In the root of the project directory, create a new file named `.env.local`.
-    *   Add the following lines to the file, replacing `<your-gcp-project-id>` with your actual Google Cloud Project ID:
+    *   Add the following lines to the file, replacing placeholders with your actual AWS resource values:
     ```
-    # Google Cloud Configuration for Genkit/Vertex AI
-    GOOGLE_CLOUD_PROJECT="<your-gcp-project-id>"
-    GOOGLE_CLOUD_LOCATION="us-central1"
+    # AWS Region
+    AWS_REGION="us-east-1"
 
-    # Firebase Configuration
-    # Replace with your project's Firebase config values.
-    # You can find these in the Firebase Console: Project settings > General > Your apps > Web app
-    NEXT_PUBLIC_FIREBASE_API_KEY="<your-api-key>"
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="<your-auth-domain>"
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID="<your-project-id>"
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="<your-storage-bucket>"
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="<your-messaging-sender-id>"
-    NEXT_PUBLIC_FIREBASE_APP_ID="<your-app-id>"
+    # AWS Credentials (for local development; use IAM roles in production)
+    AWS_ACCESS_KEY_ID="<your-access-key-id>"
+    AWS_SECRET_ACCESS_KEY="<your-secret-access-key>"
+
+    # Amazon Bedrock
+    BEDROCK_MODEL_ID="amazon.nova-lite-v1:0"
+
+    # Amazon Cognito
+    NEXT_PUBLIC_COGNITO_REGION="us-east-1"
+    NEXT_PUBLIC_COGNITO_USER_POOL_ID="<your-user-pool-id>"
+    NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID="<your-user-pool-client-id>"
+
+    # Amazon S3
+    S3_BUCKET_NAME="<your-s3-bucket-name>"
+
+    # Amazon DynamoDB
+    DYNAMODB_TABLE_NAME="<your-dynamodb-table-name>"
     ```
 
-
-5.  **Enable APIs:**
-    *   In your Google Cloud project, enable the following APIs. You can do this via the Google Cloud Console UI or by using the `gcloud services enable` command.
-        *   **Vertex AI API** (`aiplatform.googleapis.com`)
-        *   **Cloud Build API** (`cloudbuild.googleapis.com`)
+5.  **Enable AWS Services:**
+    *   Ensure the following AWS services are provisioned in your AWS account:
+        *   **Amazon Cognito** — User Pool for authentication
+        *   **Amazon S3** — Bucket for document storage
+        *   **Amazon DynamoDB** — Table for session history and metadata
+        *   **Amazon Bedrock** — Enable model access for **Amazon Nova Lite** (`amazon.nova-lite-v1:0`) in the Bedrock console
 
 6.  **Install Dependencies:**
     ```bash
@@ -233,16 +424,21 @@ To run and test the application on your local machine, please follow these steps
     npm run dev
     ```
 
-8.  **Access the Application:** Open your browser and navigate to `http://localhost:9002`. You can now sign up and use the application as described in the testing scenarios below.
+8.  **Access the Application:** Open your browser and navigate to `http://localhost:3000`. You can now sign up and use the application as described in the testing scenarios below.
 
 ### Deployment Instructions
 
-To deploy the application to Google Cloud Run, use the following command from the root of the project directory. Ensure your `gcloud` CLI is configured to use the correct Google Cloud project where you enabled the APIs.
+The application is containerized and deployed to **AWS ECS Fargate**. Refer to [deploy-to-ecs.md](deploy-to-ecs.md) for the full step-by-step guide. At a high level:
 
-```bash
-gcloud run deploy vidhik-ai --source . --region us-central1 --allow-unauthenticated
-```
-This single command builds the container image using Cloud Build and deploys it to Cloud Run. The `--allow-unauthenticated` flag makes the service publicly accessible.
+1.  **Build and push the Docker image to Amazon ECR:**
+    ```bash
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+    docker build -t vidhik-ai .
+    docker tag vidhik-ai:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/vidhik-ai:latest
+    docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/vidhik-ai:latest
+    ```
+
+2.  **Deploy to ECS Fargate** using the provided CloudFormation template or the AWS Console. The `ecs-infrastructure.yaml` file in the repository contains the full infrastructure definition including the ECS cluster, task definition, service, and Application Load Balancer.
 
 ### Testing Scenarios
 
